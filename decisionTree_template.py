@@ -4,7 +4,6 @@ import treeplot
 import pandas as pd
 import numpy as np
 
-feature_names = []
 
 def loadDataSet(filepath):
     '''
@@ -24,8 +23,6 @@ def loadDataSet(filepath):
             featNames = array[:-1]
         else:
             data.append(array)
-    global feature_names
-    feature_names = featNames
     return data, featNames
 
 
@@ -80,37 +77,28 @@ def chooseBestFeature(dataSet):
     dataFrame = pd.DataFrame(dataSet)
     classLabeCounts = dataFrame[dataFrame.columns[-1]].value_counts() #Yes and NO labels of the whole dataset
     bigGini = giniMath(dataFrame.shape[0], classLabeCounts) #This is the big gini of the entire dataset
-    print("Big Gini is: ", bigGini)
     for i in range(len(dataFrame.columns)-1): #looping through all the m feature columns and not label column
         uniqueValuesInFeature = dataFrame[i].unique() #unique features of the column we are at
         featureCounts = dataFrame[i].value_counts()
-        print("The feature counts of this column are: ",featureCounts)
         giniList = [] #list that will store little ginis
-        fractionList = [] #list that will store the yes fractions
+        fractionList = [] #list that will store the whole fractions
         for label in uniqueValuesInFeature:
-            print("feature label: ", label, " has count: ",featureCounts[label])
             df = pd.DataFrame(splitData(dataSet, i, label))
             subsetCount = df[df.columns[-1]].value_counts() # last column yes and no counts. The biggest one first
             giniList.append(giniMath(df.shape[0], subsetCount))
             fractionList.append(featureCounts[label]/dataFrame.shape[0])
-        print("Gini list length: ", len(giniList), " the list length of frac: ", len(fractionList))
-        # computeGin = 0
-        # for idx,value in enumerate(giniList):
-        #     print("The ginis ",giniList[idx], " ", fractionList[idx])
-        #     computeGin += (giniList[idx] * fractionList[idx])
-        # localGain = bigGini - computeGin
-        localGain = gainMath(bigGini, fractionList, giniList)
-        print("local gain is: ", localGain)
-        gain_list.append(localGain)
-    print(gain_list)
+        gain_list.append(gainMath(bigGini, fractionList, giniList))
+    print("The gain list: ", gain_list)
+    if len(gain_list) == 0: return 0
     return gain_list.index(max(gain_list))
 
 def gainMath(bigGini, fractionList, lilGiniList):
+    print("Big Gini: ", bigGini, " fraction list is: ", fractionList, " lilGiniList is: ", lilGiniList)
     giniTotal = 0
     for i in range(len(fractionList)):
         frac = fractionList[i]
         lilGini = lilGiniList[i]
-        giniTotal+=frac * lilGini
+        giniTotal += (frac * lilGini)
     return bigGini - giniTotal
 
 def giniMath(n,classLabelCount):
@@ -141,8 +129,10 @@ def stopCriteria(dataSet):
     # TODO
     df = pd.DataFrame(dataSet)
     lastColumn = df[df.columns[-1]]
-    counts = lastColumn.value_counts()
-    if(len(counts) == 1): return counts[0]
+    counts = lastColumn.value_counts() #get all unique values and occurence counts
+    countsList = counts.index.tolist() #convert the unique values to sorted list by the counts
+    if len(df.columns) == 1: return countsList[0]
+    if(len(counts) < 2): return countsList[0] #if there is only one count return that
     return assignedLabel
 
 def buildTree(dataSet, featNames):
@@ -162,8 +152,8 @@ def buildTree(dataSet, featNames):
     assignedLabel = stopCriteria(dataSet)
     if assignedLabel:
         return assignedLabel
-
     bestFeatId = chooseBestFeature(dataSet)
+    print("Best feature idx is ", bestFeatId, " which has value ", featNames[bestFeatId])
     bestFeatName = featNames[bestFeatId]
 
     myTree = {bestFeatName:{}}
@@ -179,7 +169,7 @@ def buildTree(dataSet, featNames):
 
 
 if __name__ == "__main__":
-    data, featNames = loadDataSet('golf.csv')
+    data, featNames = loadDataSet('car.csv')
     dtTree = buildTree(data, featNames)
     print (dtTree)
     treeplot.createPlot(dtTree)
