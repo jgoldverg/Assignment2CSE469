@@ -131,8 +131,9 @@ def stopCriteria(dataSet):
     lastColumn = df[df.columns[-1]]
     counts = lastColumn.value_counts() #get all unique values and occurence counts
     countsList = counts.index.tolist() #convert the unique values to sorted list by the counts
+    print(counts)
     if len(df.columns) == 1: return countsList[0]
-    if(len(counts) < 2): return countsList[0] #if there is only one count return that
+    if(len(counts) == 1): return countsList[0] #if there is only one count return that
     return assignedLabel
 
 def buildTree(dataSet, featNames):
